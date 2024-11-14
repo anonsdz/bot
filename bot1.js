@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Thay thế BOT_TOKEN với token của bạn
-const token = '7065038890:AAH8S_xfKvcdYiQHqs_6SeRNwoLmTmEYFUo';
+const token = '7584086130:AAG3zRETxFEIzYhrfisd3wOFjO8agqIzDfc';
 const adminChatIds = ['7371969470']; // ID chat admin
 
 // Tạo bot
