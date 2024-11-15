@@ -9,7 +9,7 @@ from urllib import parse
 
 # Cấu hình
 ALLOWED_USER_ID = 7371969470  # ID của admin
-TOKEN = '7637176642:AAHLmNXp5uhJMT8L47Vas-pOSCHfcVWmDyI'
+TOKEN = '7637176642:AAHJ6gSqxlgnJ3gxBmOUQkfIvbrKNuB7qew'
 
 # Quản lý tiến trình tấn công
 processes, task_info = {}, {}
