@@ -5,7 +5,6 @@ import os
 import time
 from termcolor import colored
 
-# Các website để lấy proxy (phương thức gốc)
 listwebsite = [
     'https://raw.githubusercontent.com/anonsdz/ok/refs/heads/main/1.txt',
     'https://raw.githubusercontent.com/ErcinDedeoglu/proxies/refs/heads/main/proxies/https.txt',
@@ -80,16 +79,13 @@ listwebsite = [
     'https://multiproxy.org/txt_all/proxy.txt',
     'https://proxy-spider.com/api/proxies.example.txt',
 ]
-
-
-# Các trang proxy cần truy cập (phương thức mới)
+# Các trang proxy mới
 pages = [
     "https://free-proxy-list.net",
     "https://www.sslproxies.org",
     "https://us-proxy.org"
 ]
 
-# Danh sách chứa các proxy tìm được
 def get_proxies_from_website(url):
     try:
         response = requests.get(url, timeout=10)
@@ -101,25 +97,21 @@ def get_proxies_from_website(url):
         print(f"URL lỗi: {url} - {e}")
         return []
 
-# Lấy proxy từ các trang web mới (phương thức bổ sung)
 def get_proxies_from_new_sources():
     proxies_list = []
     for page in pages:
         try:
             response = requests.get(page)
-            if response.status_code == 200:  # Kiểm tra xem trang đã tải thành công
-                # Tìm các địa chỉ IP:Port bằng regex
+            if response.status_code == 200:
                 matches = re.findall(r"\d+\.\d+\.\d+\.\d+:\d+", response.text)
-                proxies_list.extend(matches)  # Thêm vào danh sách
+                proxies_list.extend(matches)
         except requests.RequestException as e:
             print(f"Không thể lấy proxy từ {page}: {e}")
     return proxies_list
 
-# Xoá màn hình terminal
 def clear():
     os.system("cls" if os.name == "nt" else "clear")
 
-# Lớp ProxyInfo để lấy thông tin proxy
 class ProxyInfo:
     def __init__(self, proxy):
         self.proxy = proxy
@@ -169,32 +161,27 @@ class ProxyInfo:
             self.measure_response_time()
         return is_live
 
-# Lưu proxy vào tệp proxy.txt
 def save_proxies_to_file():
-    proxies = set()  # Sử dụng set để loại bỏ các proxy trùng lặp
-    # Lấy proxy từ các website cũ
+    proxies = set()
     for url in listwebsite:
         print(f"Đang lấy proxy từ {url}...")
         new_proxies = get_proxies_from_website(url)
         proxies.update(new_proxies)
 
-    # Lấy proxy từ các website mới
     print("Đang lấy proxy từ các website mới...")
     new_proxies_from_new_sources = get_proxies_from_new_sources()
     proxies.update(new_proxies_from_new_sources)
 
-    # Lưu tất cả proxy vào tệp proxy.txt
     with open("proxy.txt", "w") as file:
         for proxy in proxies:
             file.write(proxy + "\n")
     
     print(f"Đã lưu {len(proxies)} proxy vào tệp proxy.txt")
 
-# Kiểm tra proxy sống và lưu vào live.txt
-def check_live_proxies(filename, num_threads):
+def check_live_proxies(filename, num_threads=10):
     proxy_pattern = re.compile(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+$')
     lock = threading.Lock()
-    live_proxies = set()  # Tập hợp để lưu các proxy sống
+    live_proxies = set()
 
     def check_proxy_thread(proxy):
         proxy_info = ProxyInfo(proxy)
@@ -208,7 +195,7 @@ def check_live_proxies(filename, num_threads):
                 print(colored(f"Loại proxy: {proxy_info.type}", "green"))
                 
                 with lock:
-                    if proxy not in live_proxies:  # Kiểm tra xem proxy đã tồn tại chưa
+                    if proxy not in live_proxies:
                         live_proxies.add(proxy)
                         with open("live.txt", "a") as file:
                             file.write(proxy + "\n")
@@ -218,7 +205,7 @@ def check_live_proxies(filename, num_threads):
             clear()
             print(colored(f"IP: {proxy} - Proxy không hoạt động", "red"))
 
-    while True:  # Vòng lặp vô hạn để kiểm tra các proxy liên tục
+    while True:
         with open(filename, 'r', encoding='ISO-8859-1') as file:
             proxies = file.readlines()
             threads = []
@@ -239,17 +226,14 @@ def check_live_proxies(filename, num_threads):
 
         print("Đã hoàn tất kiểm tra một vòng. Tiếp tục kiểm tra từ đầu...")
         print("Đang lấy proxy mới...")
-        os.remove("proxy.txt")  # Xóa dữ liệu trong proxy.txt
-        save_proxies_to_file()  # Lấy lại proxy mới và lưu vào proxy.txt
+        os.remove("proxy.txt")
+        save_proxies_to_file()
 
 if __name__ == "__main__":
     try:
         clear()
-        # Bước 1: Lấy proxy từ các website và lưu vào proxy.txt
         save_proxies_to_file()
-        # Bước 2: Kiểm tra các proxy sống từ proxy.txt
-        num_threads = 100000  # Giới hạn số lượng luồng (có thể điều chỉnh theo ý muốn)
-        check_live_proxies("proxy.txt", num_threads)
+        check_live_proxies("proxy.txt", num_threads=10000)
     except KeyboardInterrupt:
         print("Đang thoát... Vui lòng chờ một chút...")
         time.sleep(1)
