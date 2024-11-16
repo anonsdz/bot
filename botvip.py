@@ -12,7 +12,7 @@ import pytz  # Import thư viện pytz để quản lý múi giờ
 
 # Cấu hình
 ALLOWED_USER_ID = 7371969470  # ID của admin
-TOKEN = '7918986015:AAHHUD2fEIVz8QpN1n81hxCK0t3GBZQZ_Jk'
+TOKEN = '7258312263:AAGIDrOdqp4vyqwMnB4-gALpK0rGjxkH4s4'
 
 # Quản lý tiến trình tấn công
 processes, task_info, attacked_urls = {}, {}, {}
