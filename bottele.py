@@ -9,7 +9,7 @@ import time
 import pytz
 
 ALLOWED_USER_ID = 7371969470  # ID của admin mặc định
-TOKEN = '7258312263:AAGIDrOdqp4vyqwMnB4-gALpK0rGjxkH4s4'  # Token của bot Telegram
+TOKEN = '7588647057:AAFp-akD0f4VK84zOxxJPLuQQzyswC6tzXg'   # Token của bot Telegram
 GROUPS_FILE, HISTORY_FILE, ADMINS_FILE = "allowed_groups.json", "attack_history.json", "admins.json"
 task_info = {}  # Thông tin tiến trình tấn công
 bot_status = True  # Trạng thái của bot, mặc định là bật
