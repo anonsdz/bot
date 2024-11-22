@@ -301,9 +301,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🌐 Bot Commands:
 
 ### User Commands:
-- /flood https://google.com 60 - Flood attack for 60 seconds.
-- /bypass https://google.com 60 - Bypass attack for 60 seconds.
-- /strongscf https://google.com 60 - STRONGS-CF attack for 60 seconds.
+- ✅ /flood https://google.com 60 - Flood attack for 60 seconds.
+- ✅ /bypass https://google.com 60 - Bypass attack for 60 seconds.
+- ❌ /strongscf https://google.com 60 - STRONGS-CF attack for 60 seconds.
 - /help - Show command guide.
 
 ### Admin Commands:
