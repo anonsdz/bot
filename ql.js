@@ -1,14 +1,19 @@
 const TelegramBot = require('node-telegram-bot-api');
-const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process');
 
 // Thay thế BOT_TOKEN với token của bạn
-const token = '7226821328:AAEJhMgjPqGcbQ5yCvHCSNkhAPA4SgazRXQ';
+const token = '7588647057:AAFp-akD0f4VK84zOxxJPLuQQzyswC6tzXg';
 const adminChatIds = ['7371969470']; // ID chat admin
 
 // Tạo bot
 const bot = new TelegramBot(token, { polling: true });
+
+// Lắng nghe lỗi polling
+bot.on('polling_error', (error) => {
+    console.error('Polling Error:', error.code, error.response ? error.response.body : error.message);
+});
 
 // Gửi thông báo kết nối thành công
 adminChatIds.forEach(chatId => {
@@ -19,133 +24,164 @@ adminChatIds.forEach(chatId => {
 const helpMessage = `
 *Hướng dẫn sử dụng bot:*
 
-/download <tên_file> - Tải file từ thư mục hiện tại xuống chat admin.
-/delete <tên_file> - Xóa file với tên tương ứng trong thư mục hiện tại.
-/deleteall <tiền_tố_file> - Xóa tất cả file có tiền tố tương ứng trong thư mục hiện tại.
-/execute <lệnh> - Thực thi lệnh terminal và gửi kết quả trở lại chat admin.
-/rename <tên_file_cũ> <tên_file_mới> - Đổi tên file từ tên cũ sang tên mới trong thư mục hiện tại.
-/help - Hiển thị hướng dẫn sử dụng bot.
+╔════════════════════════════════════════════╗
+║                  Lệnh Bot                 ║
+╠════════════════════════════════════════════╣
+║ /help                                   - Hiển thị hướng dẫn sử dụng bot.        ║
+║ /download <tên_file>                    - Tải file từ server về nhóm chat.        ║
+║ /delete <tên_file>                      - Xóa file trong thư mục bot.            ║
+║ /deleteall <tiền_tố_file>               - Xóa tất cả các file có tiền tố tương   ║
+║                                           ứng.                                   ║
+║ /rename <tên_file_cũ> <tên_file_mới>     - Đổi tên file từ tên cũ sang tên mới.  ║
+║ /upload                                 - Tải file lên server qua Telegram.      ║
+╚════════════════════════════════════════════╝
 
-*Chú ý:* Các lệnh này chỉ có hiệu lực với admin.
+*Lưu ý:* 
+- Bot sẽ tự động nhận và xử lý các file gửi đến trong nhóm chat.
+- Các lệnh phải được thực hiện bởi admin của bot.
 `;
 
-// Lắng nghe tin nhắn
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
 
-    if (adminChatIds.includes(chatId.toString())) {
-        // Lệnh /help
-        if (msg.text === '/help') {
-            return bot.sendMessage(chatId, helpMessage, { parse_mode: 'Markdown' });
-        }
+    // Kiểm tra quyền admin
+    if (!adminChatIds.includes(chatId.toString())) {
+        return bot.sendMessage(chatId, 'Bạn không có quyền thực hiện lệnh này.');
+    }
 
-        // Xử lý file tải lên
-        if (msg.document) {
-            const fileName = msg.document.file_name;
-            const filePath = path.join(__dirname, fileName);
-            bot.downloadFile(msg.document.file_id, __dirname)
-                .then(() => bot.sendMessage(chatId, `File đã được tải lên thành công: ${fileName}`))
-                .catch(err => bot.sendMessage(chatId, 'Đã xảy ra lỗi khi tải file.'));
-            return;
-        }
+    if (msg.text) {
+        const command = msg.text.trim();
 
-        const command = msg.text;
+        // Hiển thị hướng dẫn sử dụng
+        if (command === '/help') return bot.sendMessage(chatId, helpMessage, { parse_mode: 'Markdown' });
 
         // Xử lý các lệnh
-        if (command.startsWith('/download ')) {
-            handleDownload(chatId, command.split(' ')[1]);
-        } else if (command.startsWith('/delete ')) {
-            handleDelete(chatId, command.split(' ')[1]);
-        } else if (command.startsWith('/deleteall ')) {
-            handleDeleteAll(chatId, command.split(' ')[1]);
-        } else if (command.startsWith('/rename ')) {
-            handleRename(chatId, command.split(' ').slice(1));
-        } else {
-            executeCommand(chatId, command);
+        const args = command.split(' ').slice(1);
+        switch (true) {
+            case command.startsWith('/download '):
+                handleDownload(chatId, args[0]);
+                break;
+            case command.startsWith('/delete '):
+                handleDelete(chatId, args[0]);
+                break;
+            case command.startsWith('/deleteall '):
+                handleDeleteAll(chatId, args[0]);
+                break;
+            case command.startsWith('/rename '):
+                handleRename(chatId, args);
+                break;
+            default:
+                handleTerminalCommand(chatId, command);
         }
+    } else if (msg.document) {
+        handleFileUpload(chatId, msg.document);
     }
 });
 
+// Xử lý tải file lên
+function handleFileUpload(chatId, document) {
+    const fileName = document.file_name;
+    bot.downloadFile(document.file_id, __dirname)
+        .then(() => bot.sendMessage(chatId, `✅ File đã được tải lên thành công: ${fileName}`))
+        .catch(err => bot.sendMessage(chatId, `❌ Đã xảy ra lỗi khi tải file. Lỗi: ${err.message}`));
+}
+
+// Hàm xử lý lệnh terminal
+function handleTerminalCommand(chatId, terminalCommand) {
+    if (!terminalCommand) {
+        return bot.sendMessage(chatId, 'Vui lòng cung cấp lệnh để thực thi.');
+    }
+
+    exec(terminalCommand, (error, stdout, stderr) => {
+        if (error) {
+            // Nếu lỗi liên quan đến mô-đun thiếu
+            if (stderr && stderr.includes('MODULE_NOT_FOUND')) {
+                const missingModule = stderr.match(/Cannot find module '(.*?)'/);
+                if (missingModule) {
+                    const errorMessage = `❌ Thiếu mô-đun: ${missingModule[1]}`;
+                    bot.sendMessage(chatId, errorMessage, { parse_mode: 'Markdown' });
+                    console.error(errorMessage);  // In lỗi ra terminal
+                    return;
+                }
+            }
+
+            // Nếu có lỗi khác
+            const errorMessage = `❌ Lỗi khi thực thi lệnh:\n\`${error.message}\``;
+            bot.sendMessage(chatId, errorMessage, { parse_mode: 'Markdown' });
+            console.error(errorMessage);  // In lỗi ra terminal
+            return;
+        }
+
+        if (stderr) {
+            const stderrMessage = `⚠️ Kết quả lỗi:\n\`${stderr}\``;
+            bot.sendMessage(chatId, stderrMessage, { parse_mode: 'Markdown' });
+            console.error(stderrMessage);  // In lỗi ra terminal
+            return;
+        }
+
+        const successMessage = `✅ Kết quả:\n\`${stdout}\``;
+        bot.sendMessage(chatId, successMessage, { parse_mode: 'Markdown' });
+        console.log(successMessage);  // In kết quả ra terminal
+    });
+}
+
+
 // Hàm xử lý tải file
 function handleDownload(chatId, fileName) {
-    if (!fileName) return bot.sendMessage(chatId, 'Vui lòng cung cấp tên file để tải xuống.');
+    if (!fileName) return bot.sendMessage(chatId, '❌ Vui lòng cung cấp tên file để tải xuống.');
 
     const filePath = path.join(__dirname, fileName);
     fs.access(filePath, fs.constants.F_OK, (err) => {
-        if (err) {
-            return bot.sendMessage(chatId, `Không tìm thấy file: ${fileName}.`);
-        }
+        if (err) return bot.sendMessage(chatId, `❌ Không tìm thấy file: ${fileName}.`);
+
         bot.sendDocument(chatId, filePath)
-            .then(() => bot.sendMessage(chatId, `Đã gửi file: ${fileName}`))
-            .catch(err => bot.sendMessage(chatId, 'Đã xảy ra lỗi khi gửi file.'));
+            .then(() => bot.sendMessage(chatId, `✅ Đã gửi file: ${fileName}`))
+            .catch(err => bot.sendMessage(chatId, `❌ Đã xảy ra lỗi khi gửi file. Lỗi: ${err.message}`));
     });
 }
 
 // Hàm xử lý xóa file
 function handleDelete(chatId, fileName) {
-    if (!fileName) return bot.sendMessage(chatId, 'Vui lòng cung cấp tên file để xóa.');
+    if (!fileName) return bot.sendMessage(chatId, '❌ Vui lòng cung cấp tên file để xóa.');
 
     const filePath = path.join(__dirname, fileName);
     fs.unlink(filePath, (err) => {
-        if (err) {
-            return bot.sendMessage(chatId, `Không thể xóa file: ${fileName}. Lỗi: ${err.message}`);
-        }
-        bot.sendMessage(chatId, `File đã được xóa thành công: ${fileName}`);
+        if (err) return bot.sendMessage(chatId, `❌ Không thể xóa file: ${fileName}. Lỗi: ${err.message}`);
+        bot.sendMessage(chatId, `✅ File đã được xóa thành công: ${fileName}`);
     });
 }
 
 // Hàm xử lý xóa tất cả file
 function handleDeleteAll(chatId, filePrefix) {
-    if (!filePrefix) return bot.sendMessage(chatId, 'Vui lòng cung cấp tiền tố file để xóa.');
+    if (!filePrefix) return bot.sendMessage(chatId, '❌ Vui lòng cung cấp tiền tố file để xóa.');
 
     fs.readdir(__dirname, (err, files) => {
-        if (err) return bot.sendMessage(chatId, `Không thể đọc thư mục. Lỗi: ${err.message}`);
+        if (err) return bot.sendMessage(chatId, `❌ Không thể đọc thư mục. Lỗi: ${err.message}`);
 
         const filesToDelete = files.filter(file => file.startsWith(filePrefix));
-        if (filesToDelete.length === 0) {
-            return bot.sendMessage(chatId, `Không tìm thấy file nào có tiền tố "${filePrefix}".`);
-        }
+        if (filesToDelete.length === 0) return bot.sendMessage(chatId, `❌ Không tìm thấy file nào có tiền tố "${filePrefix}".`);
 
         filesToDelete.forEach(file => {
             const filePath = path.join(__dirname, file);
             fs.unlink(filePath, (err) => {
-                if (err) {
-                    console.error(`Không thể xóa file: ${file}. Lỗi: ${err.message}`);
-                }
+                if (err) console.error(`Không thể xóa file: ${file}. Lỗi: ${err.message}`);
             });
         });
-        bot.sendMessage(chatId, `Đã xóa ${filesToDelete.length} file có tiền tố "${filePrefix}".`);
+        bot.sendMessage(chatId, `✅ Đã xóa ${filesToDelete.length} file có tiền tố "${filePrefix}".`);
     });
 }
 
 // Hàm xử lý đổi tên file
 function handleRename(chatId, [oldName, newName]) {
-    if (!oldName || !newName) {
-        return bot.sendMessage(chatId, 'Vui lòng cung cấp tên file cũ và tên file mới để đổi tên.');
-    }
+    if (!oldName || !newName) return bot.sendMessage(chatId, '❌ Vui lòng cung cấp tên file cũ và tên file mới để đổi tên.');
 
     const oldFilePath = path.join(__dirname, oldName);
     const newFilePath = path.join(__dirname, newName);
 
     fs.rename(oldFilePath, newFilePath, (err) => {
-        if (err) {
-            return bot.sendMessage(chatId, `Không thể đổi tên file: ${oldName}. Lỗi: ${err.message}`);
-        }
-        bot.sendMessage(chatId, `Đã đổi tên file từ "${oldName}" sang "${newName}" thành công.`);
+        if (err) return bot.sendMessage(chatId, `❌ Không thể đổi tên file: ${oldName}. Lỗi: ${err.message}`);
+        bot.sendMessage(chatId, `✅ Đã đổi tên file từ "${oldName}" sang "${newName}" thành công.`);
     });
 }
 
-// Hàm thực thi lệnh
-function executeCommand(chatId, command) {
-    exec(command, (error, stdout, stderr) => {
-        let response = error ? `Lỗi: ${error.message}\n` : '';
-        response += stderr ? `Lỗi hệ thống: ${stderr}\n` : '';
-        response += stdout || 'Không có đầu ra nào.';
-
-        console.log(response);
-        if (response) bot.sendMessage(chatId, response);
-    });
-}
-
-// Thông báo rằng bot đang chạy
 console.log('Bot đang chạy...');
