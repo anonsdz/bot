@@ -1,5 +1,5 @@
-// Code By @nguyenxuantrinhdz `Calce`
-//recode by @ThaiDuongScript
+// Code By @NeganSSHConsole
+//recode by https://t.me/NeganSSHConsole
 // npm install colors
 const net = require("net");
 const http2 = require("http2");
@@ -246,7 +246,7 @@ colors.enable();
 const coloredString = "Recommended big proxyfile if hard target.\n >  Only support HTTP/2.\n >  Use low thread(s) if you don't want crash your server.".white;
 if (cluster.isMaster) {
     console.clear()
-    console.log(`[!] MIX METHOD | @ThaiDuongScript`.red);
+    console.log(`[!] MIX METHOD | @NeganSSHConsole`.red);
     console.log(`--------------------------------------------`.gray);
     console.log("[>] Heap Size:".green, (v8.getHeapStatistics().heap_size_limit / (1024 * 1024)).toString().yellow);
     console.log('[>] Target: '.yellow + process.argv[2].cyan);
